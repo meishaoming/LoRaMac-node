@@ -21,7 +21,7 @@
  * \author    Gregory Cristian ( Semtech )
  */
 
-/*! \file classA/NucleoL073/main.c */
+/*! \file classA/SensorNode/main.c */
 
 #include "utilities.h"
 #include "board.h"
@@ -137,7 +137,7 @@ static TimerEvent_t TxNextPacketTimer;
 /*!
  * Specifies the state of the application LED
  */
-//static bool AppLedStateOn = false;
+static bool AppLedStateOn = false;
 
 /*!
  * Timer to handle the state of LED1
@@ -188,7 +188,6 @@ struct ComplianceTest_s
  */
 extern Gpio_t Led1;
 extern Gpio_t Led2;
-//extern Gpio_t Led3;
 
 /*!
  * \brief   Prepares the payload of the frame
@@ -197,6 +196,7 @@ static void PrepareTxFrame( uint8_t port )
 {
     const LoRaMacRegion_t region = ACTIVE_REGION;
 
+    printf("## %s port %d\r\n", __func__, port);
     switch( port )
     {
     case 2:
@@ -209,24 +209,37 @@ static void PrepareTxFrame( uint8_t port )
             case LORAMAC_REGION_IN865:
             case LORAMAC_REGION_KR920:
             {
+                uint16_t pressure = 0;
+                int16_t altitudeBar = 0;
+                int16_t temperature = 0;
+                int32_t latitude, longitude = 0;
+                int16_t altitudeGps = 0xFFFF;
+                uint8_t batteryLevel = 0;
+
+//                pressure = ( uint16_t )( MPL3115ReadPressure( ) / 10 );             // in hPa / 10
+//                temperature = ( int16_t )( MPL3115ReadTemperature( ) * 100 );       // in °C * 100
+//                altitudeBar = ( int16_t )( MPL3115ReadAltitude( ) * 10 );           // in m * 10
+//                batteryLevel = BoardGetBatteryLevel( );                             // 1 (very low) to 254 (fully charged)
+//                GpsGetLatestGpsPositionBinary( &latitude, &longitude );
+//                altitudeGps = GpsGetLatestGpsAltitude( );                           // in m
 
                 AppDataSizeBackup = AppDataSize = 16;
-                AppData[0] = 0x00;
-                AppData[1] = 0x01;
-                AppData[2] = 0x02;
-                AppData[3] = 0x03;
-                AppData[4] = 0x04;
-                AppData[5] = 0x05;
-                AppData[6] = 0x06;
-                AppData[7] = 0x07;
-                AppData[8] = 0x08;
-                AppData[9] = 0x09;
-                AppData[10] = 0x0A;
-                AppData[11] = 0x0B;
-                AppData[12] = 0x0C;
-                AppData[13] = 0x0D;
-                AppData[14] = 0x0E;
-                AppData[15] = 0x0F;
+                AppData[0] = AppLedStateOn;
+                AppData[1] = ( pressure >> 8 ) & 0xFF;
+                AppData[2] = pressure & 0xFF;
+                AppData[3] = ( temperature >> 8 ) & 0xFF;
+                AppData[4] = temperature & 0xFF;
+                AppData[5] = ( altitudeBar >> 8 ) & 0xFF;
+                AppData[6] = altitudeBar & 0xFF;
+                AppData[7] = batteryLevel;
+                AppData[8] = ( latitude >> 16 ) & 0xFF;
+                AppData[9] = ( latitude >> 8 ) & 0xFF;
+                AppData[10] = latitude & 0xFF;
+                AppData[11] = ( longitude >> 16 ) & 0xFF;
+                AppData[12] = ( longitude >> 8 ) & 0xFF;
+                AppData[13] = longitude & 0xFF;
+                AppData[14] = ( altitudeGps >> 8 ) & 0xFF;
+                AppData[15] = altitudeGps & 0xFF;
                 break;
             }
             case LORAMAC_REGION_AS923:
@@ -234,19 +247,29 @@ static void PrepareTxFrame( uint8_t port )
             case LORAMAC_REGION_US915:
             case LORAMAC_REGION_US915_HYBRID:
             {
+                int16_t temperature = 0;
+                int32_t latitude, longitude = 0;
+                uint16_t altitudeGps = 0xFFFF;
+                uint8_t batteryLevel = 0;
+
+                // temperature = ( int16_t )( MPL3115ReadTemperature( ) * 100 );       // in °C * 100
+
+                // batteryLevel = BoardGetBatteryLevel( );                             // 1 (very low) to 254 (fully charged)
+                // GpsGetLatestGpsPositionBinary( &latitude, &longitude );
+                // altitudeGps = GpsGetLatestGpsAltitude( );                           // in m
 
                 AppDataSizeBackup = AppDataSize = 11;
-                AppData[0] = 0x00;
-                AppData[1] = 0x01;
-                AppData[2] = 0x02;
-                AppData[3] = 0x03;
-                AppData[4] = 0x04;
-                AppData[5] = 0x05;
-                AppData[6] = 0x06;
-                AppData[7] = 0x07;
-                AppData[8] = 0x08;
-                AppData[9] = 0x09;
-                AppData[10] = 0x0A;
+                AppData[0] = AppLedStateOn;
+                AppData[1] = temperature;                                           // Signed degrees celsius in half degree units. So,  +/-63 C
+                AppData[2] = batteryLevel;                                          // Per LoRaWAN spec; 0=Charging; 1...254 = level, 255 = N/A
+                AppData[3] = ( latitude >> 16 ) & 0xFF;
+                AppData[4] = ( latitude >> 8 ) & 0xFF;
+                AppData[5] = latitude & 0xFF;
+                AppData[6] = ( longitude >> 16 ) & 0xFF;
+                AppData[7] = ( longitude >> 8 ) & 0xFF;
+                AppData[8] = longitude & 0xFF;
+                AppData[9] = ( altitudeGps >> 8 ) & 0xFF;
+                AppData[10] = altitudeGps & 0xFF;
                 break;
             }
             default:
@@ -291,6 +314,7 @@ static void PrepareTxFrame( uint8_t port )
  */
 static bool SendFrame( void )
 {
+    printf("## %s, %d\r\n", __func__, __LINE__);
     McpsReq_t mcpsReq;
     LoRaMacTxInfo_t txInfo;
 
@@ -323,6 +347,7 @@ static bool SendFrame( void )
         }
     }
 
+    printf("## %s, %d\r\n", __func__, __LINE__);
     if( LoRaMacMcpsRequest( &mcpsReq ) == LORAMAC_STATUS_OK )
     {
         return false;
@@ -335,6 +360,7 @@ static bool SendFrame( void )
  */
 static void OnTxNextPacketTimerEvent( void )
 {
+    printf("## %s\r\n", __func__);
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
 
@@ -379,7 +405,7 @@ static void OnLed1TimerEvent( void )
 {
     TimerStop( &Led1Timer );
     // Switch LED 1 OFF
-    GpioWrite( &Led1, 0 );
+    GpioWrite( &Led1, 1 );
 }
 
 /*!
@@ -389,7 +415,7 @@ static void OnLed2TimerEvent( void )
 {
     TimerStop( &Led2Timer );
     // Switch LED 2 OFF
-    GpioWrite( &Led2, 0 );
+    GpioWrite( &Led2, 1 );
 }
 
 /*!
@@ -400,6 +426,7 @@ static void OnLed2TimerEvent( void )
  */
 static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
 {
+    printf("## %s\r\n", __func__);
     if( mcpsConfirm->Status == LORAMAC_EVENT_INFO_STATUS_OK )
     {
         switch( mcpsConfirm->McpsRequest )
@@ -427,7 +454,7 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
         }
 
         // Switch LED 1 ON
-        GpioWrite( &Led1, 1 );
+        GpioWrite( &Led1, 0 );
         TimerStart( &Led1Timer );
     }
     NextTx = true;
@@ -441,6 +468,7 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
  */
 static void McpsIndication( McpsIndication_t *mcpsIndication )
 {
+    printf("## %s\r\n", __func__);
     if( mcpsIndication->Status != LORAMAC_EVENT_INFO_STATUS_OK )
     {
         return;
@@ -497,7 +525,9 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
         case 2:
             if( mcpsIndication->BufferSize == 1 )
             {
-                //AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
+                AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
+                //GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 0 : 1 );
+                printf("AppLedStateOn %d\r\n", AppLedStateOn);
             }
             break;
         case 224:
@@ -646,7 +676,7 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
     }
 
     // Switch LED 2 ON for each received downlink
-    GpioWrite( &Led2, 1 );
+    GpioWrite( &Led2, 0 );
     TimerStart( &Led2Timer );
 }
 
@@ -869,8 +899,6 @@ int main( void )
             {
                 // Wake up through events
                 TimerLowPowerHandler( );
-                // Process Radio IRQ
-                Radio.IrqProcess( );
                 break;
             }
             default:
