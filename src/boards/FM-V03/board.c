@@ -153,7 +153,7 @@ void BoardInitMcu( void )
 
         SystemClockConfig( );
 
-        UsbIsConnected = true;
+        UsbIsConnected = false;
 
         FifoInit( &Uart1.FifoTx, UartTxBuffer, UART_FIFO_TX_SIZE );
         FifoInit( &Uart1.FifoRx, UartRxBuffer, UART_FIFO_RX_SIZE );
