@@ -154,6 +154,9 @@ static TimerEvent_t Led2Timer;
  */
 static bool NextTx = true;
 
+static uint16_t multitechGatewayChannelsMask[6] = { 0x00FF, 0x0000, 0x0000, 0x0000, 0x0001, 0x0000};
+
+
 /*!
  * Device states
  */
@@ -196,7 +199,6 @@ static void PrepareTxFrame( uint8_t port )
 {
     const LoRaMacRegion_t region = ACTIVE_REGION;
 
-    printf("## %s port %d\r\n", __func__, port);
     switch( port )
     {
     case 2:
@@ -314,7 +316,6 @@ static void PrepareTxFrame( uint8_t port )
  */
 static bool SendFrame( void )
 {
-    printf("## %s, %d\r\n", __func__, __LINE__);
     McpsReq_t mcpsReq;
     LoRaMacTxInfo_t txInfo;
 
@@ -347,7 +348,6 @@ static bool SendFrame( void )
         }
     }
 
-    printf("## %s, %d\r\n", __func__, __LINE__);
     if( LoRaMacMcpsRequest( &mcpsReq ) == LORAMAC_STATUS_OK )
     {
         return false;
@@ -360,7 +360,6 @@ static bool SendFrame( void )
  */
 static void OnTxNextPacketTimerEvent( void )
 {
-    printf("## %s\r\n", __func__);
     MibRequestConfirm_t mibReq;
     LoRaMacStatus_t status;
 
@@ -426,7 +425,6 @@ static void OnLed2TimerEvent( void )
  */
 static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
 {
-    printf("## %s\r\n", __func__);
     if( mcpsConfirm->Status == LORAMAC_EVENT_INFO_STATUS_OK )
     {
         switch( mcpsConfirm->McpsRequest )
@@ -468,7 +466,6 @@ static void McpsConfirm( McpsConfirm_t *mcpsConfirm )
  */
 static void McpsIndication( McpsIndication_t *mcpsIndication )
 {
-    printf("## %s\r\n", __func__);
     if( mcpsIndication->Status != LORAMAC_EVENT_INFO_STATUS_OK )
     {
         return;
@@ -527,7 +524,6 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             {
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
                 //GpioWrite( &Led3, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 0 : 1 );
-                printf("AppLedStateOn %d\r\n", AppLedStateOn);
             }
             break;
         case 224:
@@ -799,6 +795,14 @@ int main( void )
 
                 mibReq.Type = MIB_PUBLIC_NETWORK;
                 mibReq.Param.EnablePublicNetwork = LORAWAN_PUBLIC_NETWORK;
+                LoRaMacMibSetRequestConfirm( &mibReq );
+
+                mibReq.Type = MIB_CHANNELS_DEFAULT_MASK;
+                mibReq.Param.ChannelsDefaultMask = multitechGatewayChannelsMask;
+                LoRaMacMibSetRequestConfirm( &mibReq );
+
+                mibReq.Type = MIB_CHANNELS_MASK;
+                mibReq.Param.ChannelsMask = multitechGatewayChannelsMask;
                 LoRaMacMibSetRequestConfirm( &mibReq );
 
 #if defined( REGION_EU868 )
