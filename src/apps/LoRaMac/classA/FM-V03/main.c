@@ -154,7 +154,7 @@ static TimerEvent_t Led2Timer;
  */
 static bool NextTx = true;
 
-static uint16_t multitechGatewayChannelsMask[6] = { 0x00FF, 0x0000, 0x0000, 0x0000, 0x0001, 0x0000};
+static uint16_t multitechGatewayChannelsMask[6] = { 0x0000, 0xFC00, 0x0003, 0x0000, 0x0000, 0x0000};
 
 
 /*!

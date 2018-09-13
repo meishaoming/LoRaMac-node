@@ -32,7 +32,7 @@
 /*!
  * Indicates if the end-device is to be connected to a private or public network
  */
-#define LORAWAN_PUBLIC_NETWORK                      true
+#define LORAWAN_PUBLIC_NETWORK                      false
 
 /*!
  * IEEE Organizationally Unique Identifier ( OUI ) (big endian)

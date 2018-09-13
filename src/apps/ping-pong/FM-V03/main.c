@@ -8,6 +8,7 @@
 #include "printf.h"
 
 #define RF_FREQUENCY                                475500000 // Hz 475.5MHz
+#define RF_FREQUENCY_RX                             507500000 // Hz 507.5MHz
 
 #define TX_OUTPUT_POWER                             14        // dBm
 
@@ -68,11 +69,16 @@ static void OnTxDone( void )
 {
     printf("## F: %s\r\n", __func__);
     Radio.Sleep( );
-    GpioWrite( &Led1, 1);
+    GpioWrite( &Led1, 1); // LED off
+
+    Radio.SetChannel( RF_FREQUENCY_RX );
+    Radio.Rx( RX_TIMEOUT_VALUE );
 }
 
 static void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
+    GpioWrite( &Led2, 0);
+    
     printf("## F: %s\r\n", __func__);
     Radio.Sleep( );
     BufferSize = size;
@@ -80,6 +86,8 @@ static void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr 
     RssiValue = rssi;
     SnrValue = snr;
     printf("Rx %d bytes: %.*s\r\n", BufferSize, BufferSize, Buffer);
+
+    GpioWrite( &Led2, 1);
 }
 
 static void OnTxTimeout( void )
@@ -121,6 +129,7 @@ static bool SendFrame(void)
 
     BufferSize = snprintf((char *)Buffer, sizeof(Buffer), "%d\r\n", count);
 
+    Radio.SetChannel( RF_FREQUENCY );
     Radio.Send( Buffer, BufferSize );
 
     return true;
